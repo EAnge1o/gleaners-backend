@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>确认付款 · 拾穗</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="standalone">
+    <div class="logo">💳</div>
+    <h1>确认付款</h1>
+    <div class="card" id="info"><div class="muted">加载中…</div></div>
+    <button class="btn block green" id="ok">确认付款</button>
+    <button class="btn block ghost" id="back">返回对话</button>
+    <p class="muted" style="text-align:center;margin-top:16px">仿真支付 · 零密钥 · 仅用于演示</p>
+  </div>
+  <script>
+    const oid = new URLSearchParams(location.search).get("order_id");
+    const s = JSON.parse(localStorage.getItem("gleaners_session") || "null");
+    const yuan = (f) => (f == null ? "—" : (f / 100).toFixed(f % 100 === 0 ? 0 : 2));
+    const esc = (x) => String(x == null ? "" : x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    async function load() {
+      if (!s || !oid) { document.getElementById("info").innerHTML = '<div class="muted">缺少登录或订单参数。</div>'; return; }
+      const r = await fetch("/api/orders/" + oid, { headers: { Authorization: "Bearer " + s.token } });
+      const o = await r.json();
+      if (!r.ok) { document.getElementById("info").innerHTML = '<div class="muted">' + esc(o.error) + '</div>'; return; }
+      document.getElementById("info").innerHTML =
+        '<div class="kv"><span class="k">商家</span><span>' + esc(o.merchant_name) + "</span></div>" +
+        '<div class="kv"><span class="k">品类</span><span>' + esc(o.category) + "</span></div>" +
+        '<div class="kv"><span class="k">订单</span><span>#' + o.id + "</span></div>" +
+        '<div class="kv"><span class="k">应付金额</span><span class="price" style="font-size:22px">¥' + yuan(o.amount) + "</span></div>" +
+        (o.overrun_reasons && o.overrun_reasons.length ? '<p class="muted" style="margin:8px 0 0">越界订单：' + esc(o.overrun_reasons.join("、")) + "（已确认）</p>" : "");
+    }
+    document.getElementById("ok").onclick = async () => {
+      const r = await fetch("/api/payment/sim-pay-confirm", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: +oid }),
+      });
+      const d = await r.json();
+      if (r.ok) location.href = "/#chat"; else alert(d.error || "付款失败");
+    };
+    document.getElementById("back").onclick = () => location.href = "/#chat";
+    load();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+"""拾穗 Gleaners 后端（PAYATHON 2026 · Agent Pay）。"""

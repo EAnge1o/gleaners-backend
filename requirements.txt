@@ -1,0 +1,13 @@
+fastapi>=0.110
+uvicorn[standard]>=0.27
+sqlalchemy>=2.0,<2.1
+pydantic>=2
+pydantic-settings>=2
+apscheduler>=3.10,<4
+httpx>=0.27
+pyjwt>=2.8
+cryptography>=42
+python-dotenv>=1
+pytest>=8
+# 可选：真实支付宝沙箱（P5 才需要，仿真模式不依赖）
+# alipay-sdk-python>=3.6

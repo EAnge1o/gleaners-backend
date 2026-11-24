@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>授权委托 · 拾穗</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="standalone">
+    <div class="logo">🌾</div>
+    <h1>协议授权</h1>
+    <div class="card" id="info"><div class="muted">加载中…</div></div>
+    <button class="btn block green" id="ok">同意授权</button>
+    <button class="btn block ghost" id="back">返回对话</button>
+    <p class="muted" style="text-align:center;margin-top:16px">仿真授权 · 密钥不出服务端 · 仅用于演示</p>
+  </div>
+  <script>
+    const cid = new URLSearchParams(location.search).get("commission_id");
+    const s = JSON.parse(localStorage.getItem("gleaners_session") || "null");
+    const yuan = (f) => (f == null ? "—" : (f / 100).toFixed(f % 100 === 0 ? 0 : 2));
+    const esc = (x) => String(x == null ? "" : x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    async function load() {
+      if (!s || !cid) { document.getElementById("info").innerHTML = '<div class="muted">缺少登录或委托单参数。</div>'; return; }
+      const r = await fetch("/api/commissions/" + cid, { headers: { Authorization: "Bearer " + s.token } });
+      const c = await r.json();
+      if (!r.ok) { document.getElementById("info").innerHTML = '<div class="muted">' + esc(c.error) + '</div>'; return; }
+      const rc = c.rule_card || {};
+      document.getElementById("info").innerHTML =
+        '<div class="kv"><span class="k">委托单</span><span>#' + c.id + " · " + esc(c.raw_text || "") + "</span></div>" +
+        '<div class="kv"><span class="k">每单上限</span><span>¥' + yuan(c.per_order_max) + "</span></div>" +
+        '<div class="kv"><span class="k">半径</span><span>' + (c.radius_m / 1000).toFixed(1) + " 公里</span></div>" +
+        '<div class="kv"><span class="k">品类</span><span>' + esc((rc.categories || []).join("·") || "不限") + "</span></div>" +
+        '<div class="kv"><span class="k">每周次数</span><span>' + (c.weekly_count_max == null ? "不限" : c.weekly_count_max) + "</span></div>" +
+        '<div class="kv"><span class="k">每月额度</span><span>' + (c.monthly_amount_max == null ? "不限" : "¥" + yuan(c.monthly_amount_max)) + "</span></div>" +
+        '<p class="muted" style="margin:8px 0 0">授权后 AI 将在上述范围内替你自动蹲余量、锁单、付款；越界会暂停并请你确认。</p>';
+    }
+    document.getElementById("ok").onclick = async () => {
+      const r = await fetch("/api/payment/sim-auth-confirm", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commission_id: +cid }),
+      });
+      const d = await r.json();
+      if (r.ok) location.href = "/#chat"; else alert(d.error || "授权失败");
+    };
+    document.getElementById("back").onclick = () => location.href = "/#chat";
+    load();
+  </script>
+</body>
+</html>
